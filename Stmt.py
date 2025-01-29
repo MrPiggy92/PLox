@@ -27,6 +27,12 @@ class Print:
         self.expression = expression
     def accept(self, visitor):
         return visitor.visitPrintStmt(self)
+class Return:
+    def __init__(self, keyword, value):
+        self.keyword = keyword
+        self.value = value
+    def accept(self, visitor):
+        return visitor.visitReturnStmt(self)
 class Var:
     def __init__(self, name, initialiser):
         self.name = name

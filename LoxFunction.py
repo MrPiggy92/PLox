@@ -1,5 +1,6 @@
 from Environment import *
 from LoxCallable import *
+from Return import *
 
 class LoxFunction(LoxCallable):
     def __init__(self, declaration):
@@ -8,7 +9,10 @@ class LoxFunction(LoxCallable):
         environment = Environment(interpreter.globals)
         for param, arg in zip(self.declaration.params, arguments):
             environment.define(param.lexeme, arg)
-        interpreter.executeBlock(self.declaration.body, environment)
+        try:
+            interpreter.executeBlock(self.declaration.body, environment)
+        except Return as e:
+            return e.value
         return None
     def arity(self):
         return len(self.declaration.params)

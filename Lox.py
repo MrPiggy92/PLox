@@ -30,12 +30,17 @@ class Lox:
             self.run(line)
             self.hadError = False
     def run(self, source):
-        scanner = Scanner(source, self)
-        tokens = scanner.scanTokens()
-        parser = Parser(tokens, self)
-        statements = parser.parse()
-        if self.hadError: return
-        self.interpreter.interpret(statements)
+        try:
+            scanner = Scanner(source, self)
+            tokens = scanner.scanTokens()
+            parser = Parser(tokens, self)
+            statements = parser.parse()
+            if self.hadError: return
+            self.interpreter.interpret(statements)
+        except KeyboardInterrupt:
+            print("Cancel")
+            self.hadError = True
+            return
         #print(expr)
         #for token in tokens:
         #    print(token)

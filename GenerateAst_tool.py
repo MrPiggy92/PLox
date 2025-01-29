@@ -23,6 +23,7 @@ class GenerateAst:
         "Function   : name, params, body",
         "If         : condition, thenBranch, elseBranch",
         "Print      : expression",
+        "Return     : keyword, value",
         "Var        : name, initialiser",
         "While      : condition, body"
         ])

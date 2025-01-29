@@ -32,6 +32,7 @@ class Parser:
         elif self.match("WHILE"): return self.whileStatement()
         elif self.match("FOR"): return self.forStatement()
         elif self.match("LEFT_BRACE"): return Block(self.block())
+        elif self.match("RETURN"): return self.returnStatement()
         return self.expressionStatement()
     def printStatement(self):
         value = self.expression()
@@ -78,6 +79,13 @@ class Parser:
         if initialiser != None:
             body = Block([initialiser, body])
         return body
+    def returnStatement(self):
+        keyword = self.previous()
+        value = None
+        if not self.check("SEMICOLON"):
+            value = self.expression()
+        self.consume("SEMICOLON", "Expect ';' after return value.")
+        return Return(keyword, value)
     def expressionStatement(self):
         expr = self.expression()
         self.consume("SEMICOLON", "Expect ';' after value.")

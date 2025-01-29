@@ -2,21 +2,36 @@ from LoxRuntimeError import *
 from Environment import *
 from LoxCallable import *
 from LoxFunction import *
+from Return import *
 import time
 
 class Clock(LoxCallable):
     def arity(self): return 0
-    def call(interpeter, arguments):
+    def call(self, interpeter, arguments):
         return time.time()
     def __repr__(self):
         return "<native fn clock>"
-
+class Input(LoxCallable):
+    def arity(self): return 1
+    def call(self, interpreter, arguments):
+        return input(arguments[0])
+    def __repr__(self):
+        return "<native fn input>"
+class Print(LoxCallable):
+    def arity(self): return 1
+    def call(self, interpreter, arguments):
+        print(arguments[0])
+        return arguments[0]
+    def __repr__(self):
+        return "<native fn print>"
 class Interpreter:
     def __init__(self, lox):
         self.lox_class = lox
         self.globals = Environment()
         self.environment = self.globals
         self.globals.define("clock", Clock())
+        self.globals.define("input", Input())
+        self.globals.define("print", Print())
     def interpret(self, statements):
         try:
             for statement in statements:
@@ -106,6 +121,11 @@ class Interpreter:
         function = LoxFunction(stmt)
         self.environment.define(stmt.name.lexeme, function)
         return None
+    def visitReturnStmt(self, stmt):
+        value = None
+        if stmt.value != None:
+            value = self.evaluate(stmt.value)
+        raise Return(value)
     def visitPrintStmt(self, stmt):
         value = self.evaluate(stmt.expression)
         print(self.stringify(value))
