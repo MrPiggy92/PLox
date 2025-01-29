@@ -11,6 +11,13 @@ class Binary:
         self.right = right
     def accept(self, visitor):
         return visitor.visitBinaryExpr(self)
+class Call:
+    def __init__(self, callee, paren, arguments):
+        self.callee = callee
+        self.paren = paren
+        self.arguments = arguments
+    def accept(self, visitor):
+        return visitor.visitCallExpr(self)
 class Grouping:
     def __init__(self, expression):
         self.expression = expression

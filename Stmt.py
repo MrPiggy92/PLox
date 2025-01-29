@@ -8,6 +8,13 @@ class Expression:
         self.expression = expression
     def accept(self, visitor):
         return visitor.visitExpressionStmt(self)
+class Function:
+    def __init__(self, name, params, body):
+        self.name = name
+        self.params = params
+        self.body = body
+    def accept(self, visitor):
+        return visitor.visitFunctionStmt(self)
 class If:
     def __init__(self, condition, thenBranch, elseBranch):
         self.condition = condition

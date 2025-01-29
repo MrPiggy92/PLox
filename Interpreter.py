@@ -1,10 +1,22 @@
 from LoxRuntimeError import *
 from Environment import *
+from LoxCallable import *
+from LoxFunction import *
+import time
+
+class Clock(LoxCallable):
+    def arity(self): return 0
+    def call(interpeter, arguments):
+        return time.time()
+    def __repr__(self):
+        return "<native fn clock>"
 
 class Interpreter:
     def __init__(self, lox):
         self.lox_class = lox
-        self.environment = Environment()
+        self.globals = Environment()
+        self.environment = self.globals
+        self.globals.define("clock", Clock())
     def interpret(self, statements):
         try:
             for statement in statements:
@@ -76,8 +88,23 @@ class Interpreter:
         else:
             if not self.isTruthy(left): return left
         return self.evaluate(expr.right)
+    def visitCallExpr(self, expr):
+        callee = self.evaluate(expr.callee)
+        arguments = []
+        for argument in expr.arguments:
+            arguments.append(self.evaluate(argument))
+        if not isinstance(callee, LoxCallable):
+            raise LoxRuntimeError(expr.paren, "Can only call functions and classes.")
+        function = LoxCallable(callee) # Callee
+        if len(arguments) != function.arity():
+            raise LoxRuntimeError(expr.paren, f"Expected {function.arity()} arguments but got {len(arguments)}.")
+        return function.call(self, arguments)
     def visitExpressionStmt(self, stmt):
         self.evaluate(stmt.expression)
+        return None
+    def visitFunctionStmt(self, stmt):
+        function = LoxFunction(stmt)
+        self.environment.define(stmt.name.lexeme, function)
         return None
     def visitPrintStmt(self, stmt):
         value = self.evaluate(stmt.expression)

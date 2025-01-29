@@ -10,6 +10,7 @@ class GenerateAst:
         self.defineAst(outputDir, "Expr", [
         "Assign   : name, value",
         "Binary   : left, operator, right",
+        "Call     : callee, paren, arguments",
         "Grouping : expression",
         "Literal  : value",
         "Logical  : left, operator, right",
@@ -19,6 +20,7 @@ class GenerateAst:
         self.defineAst(outputDir, "Stmt", [
         "Block      : statements",
         "Expression : expression",
+        "Function   : name, params, body",
         "If         : condition, thenBranch, elseBranch",
         "Print      : expression",
         "Var        : name, initialiser",

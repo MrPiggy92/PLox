@@ -14,6 +14,7 @@ class Parser:
     def declaration(self):
         try:
             if self.match("VAR"): return self.varDeclaration()
+            elif self.match("FUN"): return self.function("function")
             return self.statement()
         except ParseError:
             self.synchronise()
@@ -81,6 +82,20 @@ class Parser:
         expr = self.expression()
         self.consume("SEMICOLON", "Expect ';' after value.")
         return Expression(expr)
+    def function(self, kind):
+        name = self.consume("IDENTIFIER", f"Expect {kind} name.")
+        self.consume("LEFT_PAREN", f"Expect '(' after {kind} name.")
+        parameters = []
+        if not self.check("RIGHT_PAREN"):
+            parameters.append(self.consume("IDENTIFIER", "Expect paramter name."))
+            while self.match("COMMA"):
+                if len(parameters) >= 255:
+                    self.error(self.peek(), "Can't have more than 255 paramaters.")
+                parameters.append(self.consume("IDENTIFIER", "Expect paramter name."))
+        self.consume("RIGHT_PAREN", "Expect ')' after parameters.")
+        self.consume("LEFT_BRACE", "Expect '{' before " + kind + " body.")
+        body = self.block()
+        return Function(name, parameters, body)
     def block(self):
         statements = []
         while (not self.check("RIGHT_BRACE")) and (not self.isAtEnd()):
@@ -148,7 +163,15 @@ class Parser:
             operator = self.previous()
             right = self.unary()
             return Unary(operator, right)
-        return self.primary()
+        return self.call()
+    def call(self):
+        expr = self.primary()
+        while True:
+            if self.match("LEFT_PAREN"):
+                expr = self.finishCall(expr)
+            else:
+                break
+        return expr
     def primary(self):
         if self.match("TRUE"): return Literal(True)
         elif self.match("FALSE"): return Literal(False)
@@ -162,6 +185,16 @@ class Parser:
             self.consume("RIGHT_PAREN", "Expect ')' after expression.")
             return Grouping(expr)
         raise self.error(self.peek(), "Expect expression.")
+    def finishCall(self, callee):
+        arguments = []
+        if not self.check("RIGHT_PAREN"):
+            arguments.append(self.expression())
+            while self.match("COMMA"):
+                if len(arguments) >= 255:
+                    self.error(self.peek(), "Can't have more than 255 arguments.")
+                arguments.append(self.expression())
+        paren = self.consume("RIGHT_PAREN", "Expect ')' after arguments")
+        return Call(callee, paren, arguments)
     def match(self, *args):
         for type in args:
             if self.check(type):
