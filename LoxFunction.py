@@ -3,10 +3,11 @@ from LoxCallable import *
 from Return import *
 
 class LoxFunction(LoxCallable):
-    def __init__(self, declaration):
+    def __init__(self, declaration, closure):
         self.declaration = declaration
+        self.closure = closure
     def call(self, interpreter, arguments):
-        environment = Environment(interpreter.globals)
+        environment = Environment(self.closure)
         for param, arg in zip(self.declaration.params, arguments):
             environment.define(param.lexeme, arg)
         try:
