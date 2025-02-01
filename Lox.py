@@ -3,6 +3,7 @@ if __name__ == "__main__":
     from Scanner import *
     from parser import *
     from Interpreter import *
+    from Resolver import *
 
 class Lox:
     def __init__(self):
@@ -35,6 +36,9 @@ class Lox:
             tokens = scanner.scanTokens()
             parser = Parser(tokens, self)
             statements = parser.parse()
+            if self.hadError: return
+            resolver = Resolver(self.interpreter, self)
+            resolver.resolve(statements)
             if self.hadError: return
             self.interpreter.interpret(statements)
         except KeyboardInterrupt:

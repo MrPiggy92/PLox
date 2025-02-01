@@ -32,6 +32,7 @@ class Interpreter:
         self.globals.define("clock", Clock())
         self.globals.define("input", Input())
         self.globals.define("print", Print())
+        self.locals = {}
     def interpret(self, statements):
         try:
             for statement in statements:
@@ -89,12 +90,20 @@ class Interpreter:
             raise LoxRuntimeError(expr.operator, "Operands must be two numbers or two strigns.")
         return None
     def visitVariableExpr(self, expr):
-        return self.environment.get(expr.name)
+        return self.lookUpVariable(expr.name, expr)
+    def lookUpVariable(self, name, expr):
+        try:
+            distance = self.locals[expr]
+            return self.environment.getAt(distance, name.lexeme)
+        except:
+            return self.globals.get(name)
     def visitAssignExpr(self, expr):
         value = self.evaluate(expr.value)
-        #print(value)
-        self.environment.assign(expr.name, value)
-        #print(self.environment.values)
+        try:
+            distance = self.locals[expr]
+            self.environment.assignAt(distance, expr.name, value)
+        except:
+            self.globals.assign(expr.name, value)
         return value
     def visitLogicalExpr(self, expr):
         left = self.evaluate(expr.left)
@@ -159,6 +168,8 @@ class Interpreter:
             self.environment = previous
     def execute(self, stmt):
         stmt.accept(self)
+    def resolve(self, expr, depth):
+        self.locals[expr] = depth
     def evaluate(self, expr):
         return expr.accept(self)
     def isTruthy(self, value):
