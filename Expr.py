@@ -18,6 +18,12 @@ class Call:
         self.arguments = arguments
     def accept(self, visitor):
         return visitor.visitCallExpr(self)
+class Get:
+    def __init__(self, object, name):
+        self.object = object
+        self.name = name
+    def accept(self, visitor):
+        return visitor.visitGetExpr(self)
 class Grouping:
     def __init__(self, expression):
         self.expression = expression
@@ -35,6 +41,24 @@ class Logical:
         self.right = right
     def accept(self, visitor):
         return visitor.visitLogicalExpr(self)
+class Set:
+    def __init__(self, object, name, value):
+        self.object = object
+        self.name = name
+        self.value = value
+    def accept(self, visitor):
+        return visitor.visitSetExpr(self)
+class Super:
+    def __init__(self, keyword, method):
+        self.keyword = keyword
+        self.method = method
+    def accept(self, visitor):
+        return visitor.visitSuperExpr(self)
+class This:
+    def __init__(self, keyword):
+        self.keyword = keyword
+    def accept(self, visitor):
+        return visitor.visitThisExpr(self)
 class Unary:
     def __init__(self, operator, right):
         self.operator = operator

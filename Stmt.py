@@ -3,6 +3,13 @@ class Block:
         self.statements = statements
     def accept(self, visitor):
         return visitor.visitBlockStmt(self)
+class Class:
+    def __init__(self, name, superclass, methods):
+        self.name = name
+        self.superclass = superclass
+        self.methods = methods
+    def accept(self, visitor):
+        return visitor.visitClassStmt(self)
 class Expression:
     def __init__(self, expression):
         self.expression = expression

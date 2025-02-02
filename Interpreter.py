@@ -3,6 +3,7 @@ from Environment import *
 from LoxCallable import *
 from LoxFunction import *
 from Return import *
+from LoxClass import *
 import time
 
 class Clock(LoxCallable):
@@ -50,6 +51,18 @@ class Interpreter:
             return -float(right)
         elif expr.operator.type == "BANG":
             return not self.isTruthy(right.value)
+    def visitGetExpr(self, expr):
+        object = self.evaluate(expr.object)
+        if type(object) == LoxInstance:
+            return object.get(expr.name)
+        raise LoxRuntimeError(expr.name, "Only instances have properties.")
+    def visitSetExpr(self, expr):
+        object = self.evaluate(expr.object)
+        if type(object) != LoxInstance:
+            raise LoxRuntimeError(expr.name, "Only instances have fields.")
+        value = self.evaluate(expr.value)
+        object.set(expr.name, value)
+        return value
     def visitBinaryExpr(self, expr):
         left = self.evaluate(expr.left)
         right = self.evaluate(expr.right)
@@ -88,6 +101,9 @@ class Interpreter:
             elif type(left) == str and type(right) == str:
                 return str(left) + str(right)
             raise LoxRuntimeError(expr.operator, "Operands must be two numbers or two strigns.")
+        elif expr.operator.type == "MODULO":
+            self.checkNumberOperands(expr.operator, left, right)
+            return float(left) % float(right)
         return None
     def visitVariableExpr(self, expr):
         return self.lookUpVariable(expr.name, expr)
@@ -123,11 +139,21 @@ class Interpreter:
         if len(arguments) != function.arity():
             raise LoxRuntimeError(expr.paren, f"Expected {function.arity()} arguments but got {len(arguments)}.")
         return function.call(self, arguments)
+    def visitThisExpr(self, expr):
+        return self.lookUpVariable(expr.keyword, expr)
+    def visitSuperExpr(self, expr):
+        distance = self.locals[expr]
+        superclass = self.environment.getAt(distance, "super")
+        object = self.environment.getAt(distance-1, "this")
+        method = superclass.findMethod(expr.method.lexeme)
+        if method == None:
+            raise LoxRuntimeError(expr.method, f"Undefined property '{expr.method.lexeme}'.")
+        return method.bind(object)
     def visitExpressionStmt(self, stmt):
         self.evaluate(stmt.expression)
         return None
     def visitFunctionStmt(self, stmt):
-        function = LoxFunction(stmt, self.environment)
+        function = LoxFunction(stmt, self.environment, False)
         self.environment.define(stmt.name.lexeme, function)
         return None
     def visitReturnStmt(self, stmt):
@@ -147,6 +173,25 @@ class Interpreter:
         return None
     def visitBlockStmt(self, stmt):
         self.executeBlock(stmt.statements, Environment(self.environment))
+        return None
+    def visitClassStmt(self, stmt):
+        superclass = None
+        if stmt.superclass != None:
+            superclass = self.evaluate(stmt.superclass)
+            if type(superclass) != LoxClass:
+                raise LoxRuntimeError(stmt.superclass.name, "Superclass must be a class.")
+        self.environment.define(stmt.name.lexeme, None)
+        if stmt.superclass != None:
+            self.environment = Environment(self.environment)
+            self.environment.define("super", superclass)
+        methods = {}
+        for method in stmt.methods:
+            function = LoxFunction(method, self.environment, method.name.lexeme == "init")
+            methods[method.name.lexeme] = function
+        klass = LoxClass(stmt.name.lexeme, superclass, methods)
+        if superclass != None:
+            self.environment = self.environment.enclosing
+        self.environment.assign(stmt.name, klass)
         return None
     def visitIfStmt(self, stmt):
         if self.isTruthy(self.evaluate(stmt.condition)):

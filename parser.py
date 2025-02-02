@@ -15,6 +15,7 @@ class Parser:
         try:
             if self.match("VAR"): return self.varDeclaration()
             elif self.match("FUN"): return self.function("function")
+            elif self.match("CLASS"): return self.classDeclaration()
             return self.statement()
         except ParseError:
             self.synchronise()
@@ -26,6 +27,18 @@ class Parser:
             initialiser = self.expression()
         self.consume("SEMICOLON", "Expect ';' after variable declaration.")
         return Var(name, initialiser)
+    def classDeclaration(self):
+        name = self.consume("IDENTIFIER", "Expect class name.")
+        superclass = None
+        if self.match("LESS"):
+            self.consume("IDENTIFIER", "Expect superclass name.")
+            superclass = Variable(self.previous())
+        self.consume("LEFT_BRACE", "Expect '{' before class body")
+        methods = []
+        while not(self.check("RIGHT_BRACE")) and not(self.isAtEnd()):
+            methods.append(self.function("method"))
+        self.consume("RIGHT_BRACE", "Expect '}' after class body")
+        return Class(name, superclass, methods)
     def statement(self):
         if self.match("PRINT"): return self.printStatement()
         elif self.match("IF"): return self.ifStatement()
@@ -120,6 +133,9 @@ class Parser:
             if type(expr) == Variable:
                 name = expr.name
                 return Assign(name, value)
+            elif type(expr) == Get:
+                get = expr
+                return Set(get.object, get.name, value)
             self.error(equals, "Invalid assignment target.")
         return expr
     def logicalOr(self):
@@ -146,8 +162,15 @@ class Parser:
             expr = Binary(expr, operator, right)
         return expr
     def comparison(self):
-        expr = self.term()
+        expr = self.mod()
         while self.match("GREATER", "GREATER_EQUAL", "LESS", "LESS_EQUAL"):
+            operator = self.previous()
+            right = self.mod()
+            expr = Binary(expr, operator, right)
+        return expr
+    def mod(self):
+        expr = self.term()
+        while self.match("MODULO"):
             operator = self.previous()
             right = self.term()
             expr = Binary(expr, operator, right)
@@ -177,6 +200,9 @@ class Parser:
         while True:
             if self.match("LEFT_PAREN"):
                 expr = self.finishCall(expr)
+            elif self.match("DOT"):
+                name = self.consume("IDENTIFIER", "Expect property name after '.'.")
+                expr = Get(expr, name)
             else:
                 break
         return expr
@@ -186,6 +212,13 @@ class Parser:
         elif self.match("NIL"): return Literal(None)
         elif self.match("NUMBER", "STRING"):
             return Literal(self.previous().literal)
+        elif self.match("SUPER"):
+            keyword = self.previous()
+            self.consume("DOT", "Expect '.' after 'super'.")
+            method = self.consume("IDENTIFIER", "Expect superclass method name.")
+            return Super(keyword, method)
+        elif self.match("THIS"):
+            return This(self.previous())
         elif self.match("IDENTIFIER"):
             return Variable(self.previous())
         elif self.match("LEFT_PAREN"):

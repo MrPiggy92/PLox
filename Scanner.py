@@ -34,6 +34,7 @@ class Scanner:
         elif c == '+': self.addSingleToken("PLUS")
         elif c == ';': self.addSingleToken("SEMICOLON")
         elif c == '*': self.addSingleToken("STAR")
+        elif c == '%': self.addSingleToken("MODULO")
         elif c == '!': self.addSingleToken("BANG_EQUAL" if self.match('=') else "BANG")
         elif c == '=': self.addSingleToken("EQUAL_EQUAL" if self.match('=') else "EQUAL")
         elif c == '<': self.addSingleToken("LESS_EQUAL" if self.match('=') else "LESS")

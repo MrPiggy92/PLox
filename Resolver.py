@@ -4,6 +4,7 @@ class Resolver:
         self.scopes = []
         self.lox = lox_class
         self.currentFunction = "NONE"
+        self.currentClass = "NONE"
     def visitBlockStmt(self, stmt):
         self.beginScope()
         self.resolve(stmt.statements)
@@ -34,11 +35,52 @@ class Resolver:
     def visitReturnStmt(self, stmt):
         if self.currentFunction == "NONE":
             self.lox.parseError(stmt.keyword, "Can't return from top-level code.")
-        if stmt.value != None: self.resolve(stmt.value)
+        if stmt.value != None:
+            if self.currentFunction == "INITIALISER":
+                self.lox.parseError(stmt.keyword, "Can't return a value from an initialiser.")
+            self.resolve(stmt.value)
         return None
     def visitWhileStmt(self, stmt):
         self.resolve(stmt.condition)
         self.resolve(stmt.body)
+    def visitClassStmt(self, stmt):
+        enclosingClass = self.currentClass
+        self.currentClass = "CLASS"
+        self.declare(stmt.name)
+        self.define(stmt.name)
+        if stmt.superclass != None and stmt.name.lexeme == stmt.superclass.name.lexeme:
+            self.lox.parseError(stmt.superclass.name, "A class can't inherit from itself.")
+        if stmt.superclass != None:
+            self.currentClass = "SUBCLASS"
+            self.resolve(stmt.superclass)
+        if stmt.superclass != None:
+            self.beginScope()
+            self.scopes[-1]["super"] = True
+        self.beginScope()
+        self.scopes[-1]["this"] = True
+        for method in stmt.methods:
+            declaration = "METHOD"
+            if method.name.lexeme == "init":
+                declaration = "INITIALISER"
+            self.resolveFunction(method, declaration)
+        self.endScope()
+        if stmt.superclass != None: self.endScope()
+        self.currentClass = enclosingClass
+        return None
+    def visitGetExpr(self, expr):
+        self.resolve(expr.object)
+        return None
+    def visitSuperExpr(self, expr):
+        if self.currentClass == "NONE":
+            self.lox.parseError(expr.keyword, "Can't use 'super' outside a class.")
+        elif self.currentClass != "SUBCLASS":
+            self.lox.parseError(expr.keyword, "Can't use 'super' in a class with no superclass.")
+        self.resolveLocal(expr, expr.keyword)
+        return None
+    def visitSetExpr(self, expr):
+        self.resolve(expr.value)
+        self.resolve(expr.object)
+        return None
     def visitVariableExpr(self, expr):
         #print(self.scopes)
         #print(self.scopes[-1])
@@ -56,7 +98,7 @@ class Resolver:
     def visitCallExpr(self, expr):
         self.resolve(expr.callee)
         for arg in expr.arguments:
-            self.resolve(argument)
+            self.resolve(arg)
         return None
     def visitGroupingExpr(self, expr):
         self.resolve(expr.expression)
@@ -69,6 +111,12 @@ class Resolver:
         return None
     def visitUnaryExpr(self, expr):
         self.resolve(expr.right)
+        return None
+    def visitThisExpr(self, expr):
+        if self.currentClass == "NONE":
+            self.lox.parseError(expr.keyword, "Can't use 'this' outside of a class.")
+            return None
+        self.resolveLocal(expr, expr.keyword)
         return None
     def resolve(self, statements):
         if type(statements) == list:
@@ -111,5 +159,12 @@ class Resolver:
 
 functionType = [
     "NONE",
-    "FUNCTION"
+    "FUNCTION",
+    "METHOD",
+    "INITIALISER"
+]
+classType = [
+    "NONE",
+    "CLASS",
+    "SUBCLASS"
 ]
